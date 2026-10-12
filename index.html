@@ -1,0 +1,227 @@
+<!doctype html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#1f9d5c">
+<title>SWCM Smart Farm Gauge</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 100 100%27%3E%3Ctext y=%27.9em%27 font-size=%2790%27%3E🌱%3C/text%3E%3C/svg%3E">
+<style>
+:root{--bg:#eef4f0;--panel:#fff;--text:#16261d;--muted:#6a7d72;--line:#e0e9e3;--accent:#1f9d5c;--track:#e3ebe6;--shadow:0 6px 24px rgba(20,60,40,.08)}
+body.dark{--bg:#0d1511;--panel:#16221b;--text:#e8f1ec;--muted:#8fa498;--line:#243329;--accent:#3cc47f;--track:#243329;--shadow:0 6px 24px rgba(0,0,0,.35)}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+body{margin:0;font-family:system-ui,"Noto Sans Thai",sans-serif;background:var(--bg);color:var(--text);transition:background .3s,color .3s;padding-bottom:env(safe-area-inset-bottom)}
+header{display:flex;justify-content:space-between;align-items:center;padding:calc(14px + env(safe-area-inset-top)) 18px 14px;background:linear-gradient(135deg,#1f9d5c,#127a4a);color:#fff;position:sticky;top:0;z-index:5}
+header h1{margin:0;font-size:1.1rem}header small{display:block;opacity:.85;font-size:.75rem;margin-top:2px}
+.tools{display:flex;gap:8px;align-items:center}
+.pill{display:flex;align-items:center;gap:6px;background:rgba(255,255,255,.18);padding:6px 12px;border-radius:99px;font-size:.8rem}
+.dot{width:9px;height:9px;border-radius:50%;background:#ff7a70}.dot.on{background:#5dff9f;box-shadow:0 0 0 3px rgba(93,255,159,.3)}
+#theme{border:0;background:rgba(255,255,255,.18);color:#fff;width:36px;height:36px;border-radius:50%;font-size:1.05rem;cursor:pointer}
+main{max-width:760px;margin:0 auto;padding:16px}
+h2{font-size:.82rem;color:var(--muted);margin:22px 4px 10px;text-transform:uppercase;letter-spacing:.05em}
+.gauges{display:grid;grid-template-columns:repeat(2,1fr);gap:14px}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:22px;padding:14px 10px 12px;text-align:center;box-shadow:var(--shadow)}
+.card .name{font-size:.85rem;color:var(--muted);font-weight:600}
+.gauge{position:relative;width:100%;max-width:210px;margin:4px auto 0}
+.gauge svg{width:100%;display:block}
+.gauge .track{fill:none;stroke:var(--track);stroke-width:12;stroke-linecap:round}
+.gauge .val{fill:none;stroke-width:12;stroke-linecap:round;transition:stroke-dashoffset .8s cubic-bezier(.3,.7,.2,1),stroke .4s}
+.gauge .num{position:absolute;left:0;right:0;top:38%;font-size:2rem;font-weight:700;line-height:1}
+.gauge .num small{font-size:.9rem;font-weight:500;color:var(--muted);margin-left:2px}
+.gauge .range{position:absolute;bottom:2px;font-size:.68rem;color:var(--muted)}
+.gauge .range.l{left:14%}.gauge .range.r{right:14%}
+.tag{display:inline-block;margin-top:6px;padding:3px 12px;border-radius:99px;font-size:.72rem;font-weight:600;background:var(--track);color:var(--muted);transition:.3s}
+.btns{display:grid;grid-template-columns:repeat(2,1fr);gap:14px}
+.btn{border:1px solid var(--line);background:var(--panel);color:var(--text);border-radius:22px;padding:20px 10px;font:inherit;cursor:pointer;box-shadow:var(--shadow);transition:.2s;text-align:center}
+.btn .ic{display:block;font-size:2rem;filter:grayscale(1);opacity:.5;transition:.2s}
+.btn b{display:block;margin-top:6px}.btn span.st{font-size:.78rem;color:var(--muted)}
+.btn.active{background:linear-gradient(135deg,#2bbd77,#14774a);color:#fff;border-color:transparent;box-shadow:0 8px 22px rgba(31,157,92,.4)}
+.btn.active .ic{filter:none;opacity:1}.btn.active .st{color:#d8ffe9}
+.btn:active{transform:scale(.97)}
+.boxbar{display:flex;gap:8px;overflow-x:auto;padding:2px 0 4px;scrollbar-width:none}.boxbar::-webkit-scrollbar{display:none}
+.boxbar button{flex:none;border:1px solid var(--line);background:var(--panel);color:var(--text);padding:8px 16px;border-radius:99px;font:inherit;font-size:.9rem;cursor:pointer}
+.boxbar button.active{background:var(--accent);color:#fff;border-color:var(--accent);font-weight:600}
+.seg{display:grid;grid-template-columns:repeat(3,1fr);background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:4px;gap:4px}
+.seg button{border:0;background:transparent;color:var(--text);padding:12px 0;border-radius:11px;font:inherit;font-weight:600;cursor:pointer}
+.seg button.active{background:var(--accent);color:#fff}
+#toast{position:fixed;left:50%;bottom:calc(24px + env(safe-area-inset-bottom));transform:translate(-50%,20px);background:#1d2b24;color:#fff;padding:10px 18px;border-radius:99px;font-size:.85rem;opacity:0;transition:.25s;pointer-events:none;z-index:20}
+#toast.show{opacity:1;transform:translate(-50%,0)}
+.foot{text-align:center;color:var(--muted);font-size:.75rem;margin:22px 0 10px}
+body.offline .gauges{opacity:.5}
+@media(min-width:620px){.gauges{grid-template-columns:repeat(4,1fr)}.btns{grid-template-columns:repeat(4,1fr)}}
+</style>
+</head>
+<body>
+<header>
+  <div><h1>🌱 SWCM Smart Farm</h1><small id="updated">กำลังโหลดข้อมูล...</small></div>
+  <div class="tools"><div class="pill"><span class="dot" id="dot"></span><span id="stat">ออฟไลน์</span></div><button id="theme" title="โหมดมืด/สว่าง">🌙</button></div>
+</header>
+
+<main>
+  <div class="boxbar" id="boxbar"></div>
+  <h2>ค่าจากเซนเซอร์</h2>
+  <div class="gauges" id="gauges"></div>
+
+  <h2>โหมดการทำงาน</h2>
+  <div class="seg" id="modeSeg"><button data-m="manual">มือ</button><button data-m="auto">อัตโนมัติ</button><button data-m="timer">ตั้งเวลา</button></div>
+
+  <h2>วาล์วน้ำ</h2>
+  <div class="btns" id="btns"></div>
+  <div class="foot">กดวาล์วจะสลับเป็นโหมดมือ · <span id="mq">MQTT: กำลังเชื่อมต่อ...</span></div>
+</main>
+<div id="toast"></div>
+<script src="https://cdn.jsdelivr.net/npm/mqtt@5.10.1/dist/mqtt.min.js"></script>
+
+<script>
+// ===== Config (shared with dashboard/mobile via localStorage "swcm_cfg") =====
+// GitHub Pages is HTTPS, so browsers block plain ws:// (mixed content) -> use wss:// on 443 (path /mqtt)
+const DEFAULTS = { url: 'wss://service.smartbox89.com:443/mqtt', base: 'swcm/smartfarm/box1', user: '', pass: '' };
+let cfg = Object.assign({}, DEFAULTS);
+try { const b = (JSON.parse(localStorage.getItem('swcm_cfg')) || {}).base; if (/^swcm\/smartfarm\/box\d+$/.test(b)) cfg.base = b; } catch {}
+// override via URL, e.g. ?broker=wss://host:port/mqtt&user=u&pass=p&base=swcm/smartfarm/box2
+const q = new URLSearchParams(location.search);
+if (q.get('broker')) cfg.url = q.get('broker');
+if (q.get('user')) cfg.user = q.get('user');
+if (q.get('pass')) cfg.pass = q.get('pass');
+if (q.get('base')) cfg.base = q.get('base');
+const saveCfg = () => { try { localStorage.setItem('swcm_cfg', JSON.stringify(cfg)); } catch {} };
+
+// key = field in <base>/sensors JSON; zones: [upTo, color, label]
+const GAUGES = [
+  { pin: 'temperature', name: 'อุณหภูมิ', unit: '°C', min: 0, max: 80, dec: 1,
+    zones: [[25, '#e0c419', 'เย็น'], [37, '#2fbf5a', 'พอดี'], [80, '#e5522a', 'ร้อน']] },
+  { pin: 'humidity', name: 'ความชื้นอากาศ', unit: '%', min: 0, max: 100, dec: 0,
+    zones: [[40, '#e0c419', 'แห้ง'], [65, '#2fbf5a', 'พอดี'], [100, '#e5522a', 'ชื้นมาก']] },
+  { pin: 'soil_moisture', name: 'ความชื้นดิน', unit: '%', min: 0, max: 100, dec: 0,
+    zones: [[40, '#e0c419', 'แห้ง'], [70, '#2fbf5a', 'พอดี'], [100, '#e5522a', 'แฉะ']] },
+  { pin: 'light', name: 'แสง', unit: 'Lux', min: 0, max: 100000, dec: 0,
+    zones: [[10000, '#e0c419', 'น้อย'], [60000, '#2fbf5a', 'พอดี'], [100000, '#e5522a', 'จัด']] },
+];
+const BUTTONS = [1, 2, 3, 4].map(i => ({ pin: i, name: 'วาล์ว ' + i, icon: '💧' }));
+
+const $ = id => document.getElementById(id);
+
+// ===== Build UI =====
+// 240deg arc, drawn with stroke-dasharray
+const R = 80, CX = 100, CY = 100, SWEEP = 240, START = 150;
+const pt = a => [CX + R * Math.cos(a * Math.PI / 180), CY + R * Math.sin(a * Math.PI / 180)];
+const [x0, y0] = pt(START), [x1, y1] = pt(START + SWEEP);
+const ARC = `M${x0.toFixed(2)} ${y0.toFixed(2)} A${R} ${R} 0 1 1 ${x1.toFixed(2)} ${y1.toFixed(2)}`;
+const ARC_LEN = R * SWEEP * Math.PI / 180;
+
+$('gauges').innerHTML = GAUGES.map(g => `
+  <div class="card" id="g_${g.pin}">
+    <div class="name">${g.name}</div>
+    <div class="gauge">
+      <svg viewBox="0 0 200 165"><path class="track" d="${ARC}"/><path class="val" d="${ARC}" stroke-dasharray="${ARC_LEN}" stroke-dashoffset="${ARC_LEN}"/></svg>
+      <div class="num"><span class="v">--</span><small>${g.unit}</small></div>
+      <span class="range l">${g.min}</span><span class="range r">${g.max}</span>
+    </div>
+    <span class="tag">--</span>
+  </div>`).join('');
+
+$('btns').innerHTML = BUTTONS.map(b => `
+  <button class="btn" id="b_${b.pin}" data-pin="${b.pin}"><span class="ic">${b.icon}</span><b>${b.name}</b><span class="st">ปิด</span></button>`).join('');
+
+// ===== Gauge update =====
+function setGauge(g, raw) {
+  const el = $('g_' + g.pin), v = parseFloat(raw);
+  if (isNaN(v)) return;
+  const pct = Math.max(0, Math.min(1, (v - g.min) / (g.max - g.min)));
+  const zone = g.zones.find(z => v <= z[0]) || g.zones[g.zones.length - 1];
+  const arc = el.querySelector('.val');
+  arc.style.strokeDashoffset = ARC_LEN * (1 - pct);
+  arc.style.stroke = zone[1];
+  el.querySelector('.v').textContent = v.toFixed(g.dec);
+  const tag = el.querySelector('.tag');
+  tag.textContent = zone[2]; tag.style.background = zone[1] + '2a'; tag.style.color = zone[1];
+}
+
+// ===== Buttons / mode =====
+const T = p => `${cfg.base}/${p}`;
+let client, toastT;
+function toast(m) {
+  const t = $('toast'); t.textContent = m; t.classList.add('show');
+  clearTimeout(toastT); toastT = setTimeout(() => t.classList.remove('show'), 1600);
+}
+function send(path, val, msg) {
+  if (!client || !client.connected) return toast('ยังไม่ได้เชื่อมต่อ');
+  client.publish(T('cmd/' + path), String(val), { qos: 1 }, err => { if (err) toast('ส่งคำสั่งไม่สำเร็จ'); });
+  if (navigator.vibrate) navigator.vibrate(15);
+  toast(msg);
+  // optimistic UI: update immediately, device 'state' message will confirm/correct
+  if (path.startsWith('valve/')) setButton(path.slice(6), val == 1);
+  else if (path === 'mode') document.querySelectorAll('#modeSeg button').forEach(x => x.classList.toggle('active', x.dataset.m === String(val)));
+}
+function setButton(pin, on) {
+  const b = $('b_' + pin);
+  b.classList.toggle('active', on);
+  b.querySelector('.st').textContent = on ? 'เปิดอยู่' : 'ปิด';
+}
+$('btns').onclick = e => {
+  const b = e.target.closest('.btn'); if (!b) return;
+  const on = !b.classList.contains('active');
+  send('valve/' + b.dataset.pin, on ? 1 : 0, `วาล์ว ${b.dataset.pin} ${on ? 'เปิด' : 'ปิด'}`);
+};
+$('modeSeg').onclick = e => { if (e.target.dataset.m) send('mode', e.target.dataset.m, 'เปลี่ยนโหมดแล้ว'); };
+
+// ===== Box selector =====
+$('boxbar').innerHTML = [1, 2, 3, 4, 5, 6].map(i => `<button data-b="swcm/smartfarm/box${i}">กล่อง ${i}</button>`).join('');
+const markBox = () => document.querySelectorAll('#boxbar button').forEach(b => b.classList.toggle('active', b.dataset.b === cfg.base));
+markBox();
+$('boxbar').onclick = e => {
+  if (!e.target.dataset.b) return;
+  cfg.base = e.target.dataset.b; saveCfg(); markBox();
+  GAUGES.forEach(g => { const el = $('g_' + g.pin); el.querySelector('.v').textContent = '--'; el.querySelector('.val').style.strokeDashoffset = ARC_LEN; el.querySelector('.tag').textContent = '--'; });
+  setOnline(false); $('updated').textContent = 'รอข้อมูล...';
+  connect();
+};
+
+// ===== MQTT =====
+function setOnline(ok) {
+  $('dot').classList.toggle('on', ok);
+  $('stat').textContent = ok ? 'ออนไลน์' : 'ออฟไลน์';
+  document.body.classList.toggle('offline', !ok);
+}
+const parse = s => { try { return JSON.parse(s); } catch { return null; } };
+function connect() {
+  if (client) client.end(true);
+  $('mq').textContent = 'MQTT: กำลังเชื่อมต่อ...';
+  client = mqtt.connect(cfg.url, {
+    username: cfg.user || undefined, password: cfg.pass || undefined,
+    clientId: 'gauge-' + Math.random().toString(16).slice(2, 10), protocol: 'wss',
+    keepalive: 60, connectTimeout: 10000, reconnectPeriod: 2000, clean: true
+  });
+  client.on('connect', () => { $('mq').textContent = 'MQTT: เชื่อมต่อแล้ว'; client.subscribe([T('status'), T('sensors'), T('state')]); });
+  client.on('reconnect', () => $('mq').textContent = 'MQTT: กำลังเชื่อมต่อใหม่...');
+  client.on('close', () => $('mq').textContent = 'MQTT: ขาดการเชื่อมต่อ');
+  client.on('error', e => { $('mq').textContent = 'MQTT: ผิดพลาด (' + (e && e.message || 'เชื่อมต่อไม่ได้') + ')'; });
+  client.on('message', (topic, payload) => {
+    const msg = payload.toString(), name = topic.slice(cfg.base.length + 1);
+    if (name === 'status') setOnline(msg === 'online');
+    else if (name === 'sensors') {
+      const d = parse(msg); if (!d) return;
+      GAUGES.forEach(g => d[g.pin] != null && setGauge(g, d[g.pin]));
+      $('updated').textContent = 'อัปเดต ' + new Date().toLocaleTimeString('th-TH');
+    } else if (name === 'state') {
+      const d = parse(msg); if (!d) return;
+      BUTTONS.forEach((b, i) => setButton(b.pin, !!(d.valves && d.valves[i] === 1)));
+      document.querySelectorAll('#modeSeg button').forEach(x => x.classList.toggle('active', x.dataset.m === d.mode));
+    }
+  });
+}
+setOnline(false);
+connect();
+
+// ===== Theme =====
+const saved = (() => { try { return localStorage.getItem('gauge_theme'); } catch { return null; } })();
+const dark = saved ? saved === 'dark' : matchMedia('(prefers-color-scheme: dark)').matches;
+function applyTheme(d) { document.body.classList.toggle('dark', d); $('theme').textContent = d ? '☀️' : '🌙'; }
+applyTheme(dark);
+$('theme').onclick = () => {
+  const d = !document.body.classList.contains('dark'); applyTheme(d);
+  try { localStorage.setItem('gauge_theme', d ? 'dark' : 'light'); } catch {}
+};
+</script>
+</body>
+</html>
